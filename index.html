@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Favourite Books Online Bookstore
+  SWE30003 Assignment 3 – Object Design Implementation
+  Coding Standard: Google HTML/CSS Style Guide
+  https://google.github.io/styleguide/htmlcssguide.html
+-->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Favourite Books – Australia's beloved independent bookstore, now online.">
+  <title>Favourite Books – Online Bookstore</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav id="app-nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+
+      <div class="nav-logo" onclick="App.navigate('home')" role="link" tabindex="0" aria-label="Favourite Books Home">
+        Favourite <em>Books</em>
+      </div>
+
+      <div class="nav-links">
+        <button class="nav-link" data-nav-view="home">Home</button>
+        <button class="nav-link" data-nav-view="catalogue">Catalogue</button>
+        <button class="nav-link" data-nav-view="order-history" data-requires-customer>My Orders</button>
+        <button class="nav-link" data-nav-view="admin-dashboard" data-requires-admin>Dashboard</button>
+        <button class="nav-link" data-nav-view="admin-catalogue" data-requires-admin>Catalogue</button>
+        <button class="nav-link" data-nav-view="admin-orders" data-requires-admin>Orders</button>
+      </div>
+
+      <div class="nav-right">
+        <span class="nav-user-name" id="nav-user-name" data-requires-auth></span>
+
+        <button class="nav-link" data-nav-view="account" data-requires-customer
+                style="font-size:0.85rem">⚙ Account</button>
+
+        <button class="nav-cart-btn" data-nav-view="cart" data-requires-customer aria-label="Shopping cart">
+          🛒 Cart
+          <span id="cart-count" style="display:none" aria-live="polite">0</span>
+        </button>
+
+        <button class="nav-link" data-nav-view="login" data-requires-guest>Sign In</button>
+        <button class="btn-primary" data-nav-view="register" data-requires-guest
+                style="font-size:0.85rem;padding:8px 16px">Join</button>
+
+        <button id="btn-logout" data-requires-auth aria-label="Sign out">Sign Out</button>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- ── Main Content ── -->
+  <main id="app-root" role="main" aria-live="polite">
+    <!-- Views are rendered here dynamically -->
+  </main>
+
+  <!-- ── Footer ── -->
+  <footer id="app-footer" role="contentinfo">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="nav-logo">Favourite <em>Books</em></div>
+        <p>Australia's most beloved independent bookstore, delivering stories across the country since 1987. Now serving customers nationwide online.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Shop</h5>
+        <p>
+          <a href="#" onclick="App.navigate('catalogue')">All Books</a><br>
+          <a href="#" onclick="App.navigate('catalogue',{category:'Literary Fiction'})">Literary Fiction</a><br>
+          <a href="#" onclick="App.navigate('catalogue',{category:'Fantasy'})">Fantasy</a><br>
+          <a href="#" onclick="App.navigate('catalogue',{category:'Historical Fiction'})">Historical Fiction</a>
+        </p>
+      </div>
+      <div class="footer-col">
+        <h5>Contact</h5>
+        <address>
+          123 Glenferrie Road<br>
+          Hawthorn VIC 3122<br>
+          Australia<br><br>
+          (03) 9819 0000<br>
+          hello@favouritebooks.com.au
+        </address>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Favourite Books Pty Ltd. ABN 12 345 678 901. All rights reserved.</span>
+      <span>SWE30003 Assignment 3 — Swinburne University of Technology</span>
+    </div>
+  </footer>
+
+  <!-- ── Scripts ── -->
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/views.js"></script>
+  <script>
+    // Bootstrap the application
+    document.addEventListener('DOMContentLoaded', () => {
+      App.init();
+    });
+  </script>
+
+</body>
+</html>
