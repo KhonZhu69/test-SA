@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: favourite-books-online
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@favouritebooks.com.au
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: favourite-books-db
+          property: connectionString
+
+databases:
+  - name: favourite-books-db
+    plan: free

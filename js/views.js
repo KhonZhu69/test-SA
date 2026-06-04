@@ -319,7 +319,7 @@ Views.cart = function(root) {
 
     // Qty and remove handlers
     root.querySelectorAll('.qty-btn[data-action]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const bookId = btn.dataset.bookId;
         const cart = Store.getCart(session.id);
         const item = cart.find(i => i.bookId === bookId);
@@ -329,14 +329,16 @@ Views.cart = function(root) {
           App.showToast('Not enough stock.', 'error'); return;
         }
         const newQty = btn.dataset.action === 'inc' ? item.quantity + 1 : item.quantity - 1;
-        Store.updateCartItem(session.id, bookId, newQty);
+        const result = await Store.updateCartItem(session.id, bookId, newQty);
+        if (result.error) { App.showToast(result.error, 'error'); return; }
         App.updateNav();
         renderCart();
       });
     });
     root.querySelectorAll('.btn-remove').forEach(btn => {
-      btn.addEventListener('click', () => {
-        Store.updateCartItem(session.id, btn.dataset.bookId, 0);
+      btn.addEventListener('click', async () => {
+        const result = await Store.updateCartItem(session.id, btn.dataset.bookId, 0);
+        if (result.error) { App.showToast(result.error, 'error'); return; }
         App.updateNav();
         App.showToast('Item removed from cart.', 'info');
         renderCart();
@@ -512,7 +514,7 @@ Views.checkout = function(root) {
   }
 
   // Place order
-  root.querySelector('#btn-place-order').addEventListener('click', () => {
+  root.querySelector('#btn-place-order').addEventListener('click', async () => {
     const name = root.querySelector('#del-name').value.trim();
     const email = root.querySelector('#del-email').value.trim();
     const address = root.querySelector('#del-address').value.trim();
@@ -543,11 +545,11 @@ Views.checkout = function(root) {
     if (!valid) return;
 
     // Create order
-    const orderResult = Store.createOrder(session.id, address, deliveryMethod);
+    const orderResult = await Store.createOrder(session.id, address, deliveryMethod);
     if (orderResult.error) { App.showToast(orderResult.error, 'error'); return; }
 
     // Process payment
-    const payResult = Store.processPayment(orderResult.order.orderId, { method: paymentMethod });
+    const payResult = await Store.processPayment(orderResult.order.orderId, { method: paymentMethod });
     if (payResult.error) { App.showToast(payResult.error, 'error'); return; }
 
     App.updateNav();
@@ -638,7 +640,7 @@ Views.login = function(root, params = {}) {
         <button class="btn-primary btn-full" id="btn-login">Sign In</button>
 
         <div class="auth-hint">
-          <p>Admin login: <code>admin@favouritebooks.com.au</code> / <code>Admin@123</code></p>
+          <p>Admin login: <code>admin@favouritebooks.com.au</code> / configured server password</p>
         </div>
 
         <p class="auth-switch">Don't have an account? <a href="#" id="go-register">Create one →</a></p>
@@ -655,7 +657,7 @@ Views.login = function(root, params = {}) {
     e.preventDefault(); App.navigate('register', params);
   });
 
-  const doLogin = () => {
+  const doLogin = async () => {
     const email = root.querySelector('#login-email').value.trim();
     const pwd = root.querySelector('#login-pwd').value;
     let valid = true;
@@ -668,13 +670,13 @@ Views.login = function(root, params = {}) {
 
     if (!valid) return;
 
-    // Try admin first
-    let user = Store.authenticateAdmin(email, pwd);
-    if (!user) user = Store.authenticateCustomer(email, pwd);
+    const result = await Store.login(email, pwd);
+    const user = result.user;
 
-    if (!user) { setErr('err-login-general', 'Incorrect email or password.'); return; }
+    if (!user) { setErr('err-login-general', result.error || 'Incorrect email or password.'); return; }
 
     Store.setSession(user);
+    await Store.loadBootstrap();
     App.updateNav();
     App.showToast(`Welcome back, ${user.name.split(' ')[0]}!`, 'success');
     App.navigate(params.redirect || (user.role === 'administrator' ? 'admin-dashboard' : 'home'));
@@ -730,7 +732,7 @@ Views.register = function(root, params = {}) {
     e.preventDefault(); App.navigate('login', params);
   });
 
-  root.querySelector('#btn-register').addEventListener('click', () => {
+  root.querySelector('#btn-register').addEventListener('click', async () => {
     const name = root.querySelector('#reg-name').value.trim();
     const email = root.querySelector('#reg-email').value.trim();
     const pwd = root.querySelector('#reg-pwd').value;
@@ -748,10 +750,11 @@ Views.register = function(root, params = {}) {
 
     if (!valid) return;
 
-    const result = Store.createCustomer(name, email, pwd, addr);
+    const result = await Store.createCustomer(name, email, pwd, addr);
     if (result.error) { setErr('err-reg-general', result.error); return; }
 
     Store.setSession(result.customer);
+    await Store.loadBootstrap();
     App.updateNav();
     App.showToast(`Welcome to Favourite Books, ${name.split(' ')[0]}!`, 'success');
     App.navigate(params.redirect || 'home');
@@ -812,7 +815,7 @@ Views.account = function(root) {
     </div>
   `;
 
-  root.querySelector('#btn-save-account').addEventListener('click', () => {
+  root.querySelector('#btn-save-account').addEventListener('click', async () => {
     const name = root.querySelector('#acc-name').value.trim();
     const email = root.querySelector('#acc-email').value.trim();
     const addr = root.querySelector('#acc-addr').value.trim();
@@ -824,8 +827,9 @@ Views.account = function(root) {
     if (!valid) return;
     const existing = Store.getCustomerByEmail(email);
     if (existing && existing.id !== session.id) { setErr('err-acc-general', 'Email already in use.'); return; }
-    Store.updateCustomer(session.id, { name, email, address: addr });
-    Store.setSession({ ...session, name, email });
+    const result = await Store.updateCustomer(session.id, { name, email, address: addr });
+    if (result.error) { setErr('err-acc-general', result.error); return; }
+    Store.setSession({ ...session, ...result, token: session.token });
     App.updateNav();
     App.showToast('Account updated successfully.', 'success');
   });
@@ -947,8 +951,9 @@ Views.adminDashboard = function(root) {
   `;
 
   root.querySelectorAll('[data-order-id]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      Store.updateOrderStatus(btn.dataset.orderId, btn.dataset.status);
+    btn.addEventListener('click', async () => {
+      const result = await Store.updateOrderStatus(btn.dataset.orderId, btn.dataset.status);
+      if (result.error) { App.showToast(result.error, 'error'); return; }
       App.showToast(`Order status updated to ${btn.dataset.status}.`, 'success');
       Views.adminDashboard(root);
     });
@@ -1030,7 +1035,7 @@ Views.adminCatalogue = function(root) {
     `;
 
     root.querySelector('#btn-cancel-book').addEventListener('click', () => { fc.innerHTML = ''; });
-    root.querySelector('#btn-save-book').addEventListener('click', () => {
+    root.querySelector('#btn-save-book').addEventListener('click', async () => {
       const title = root.querySelector('#bk-title').value.trim();
       const author = root.querySelector('#bk-author').value.trim();
       const isbn = root.querySelector('#bk-isbn').value.trim();
@@ -1052,8 +1057,9 @@ Views.adminCatalogue = function(root) {
         cover: root.querySelector('#bk-cover').value.trim() || '',
         description: root.querySelector('#bk-desc').value.trim(),
       };
-      if (book) { Store.updateBook(book.bookId, data); App.showToast('Book updated.', 'success'); }
-      else { Store.addBook(data); App.showToast('Book added to catalogue.', 'success'); }
+      const result = book ? await Store.updateBook(book.bookId, data) : await Store.addBook(data);
+      if (result.error) { App.showToast(result.error, 'error'); return; }
+      App.showToast(book ? 'Book updated.' : 'Book added to catalogue.', 'success');
       fc.innerHTML = '';
       renderPage();
     });
@@ -1107,8 +1113,9 @@ Views.adminOrders = function(root) {
     `;
 
     root.querySelectorAll('[data-order-id]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        Store.updateOrderStatus(btn.dataset.orderId, btn.dataset.status);
+      btn.addEventListener('click', async () => {
+        const result = await Store.updateOrderStatus(btn.dataset.orderId, btn.dataset.status);
+        if (result.error) { App.showToast(result.error, 'error'); return; }
         App.showToast(`Order updated to ${btn.dataset.status}.`, 'success');
         renderPage();
       });
@@ -1120,11 +1127,11 @@ Views.adminOrders = function(root) {
 
 // ── Shared handler ─────────────────────────────────────────────────────────────
 
-function handleAddToCart(bookId, qty = 1) {
+async function handleAddToCart(bookId, qty = 1) {
   const session = Store.getSession();
   if (!session) { App.navigate('login', { redirect: 'cart' }); return; }
   if (session.role === 'administrator') { App.showToast('Admins cannot add to cart.', 'error'); return; }
-  const result = Store.addToCart(session.id, bookId, qty);
+  const result = await Store.addToCart(session.id, bookId, qty);
   if (result.error) { App.showToast(result.error, 'error'); return; }
   App.updateNav();
   App.showToast('Added to cart!', 'success');

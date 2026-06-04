@@ -85,8 +85,19 @@ const App = (() => {
     if (userNameEl) userNameEl.textContent = session ? session.name.split(' ')[0] : '';
   }
 
-  function init() {
-    Store.init();
+  async function init() {
+    try {
+      await Store.init();
+    } catch (err) {
+      $root().innerHTML = `
+        <div class="error-view">
+          <h2>Backend unavailable</h2>
+          <p>Please make sure the server is running and connected to PostgreSQL.</p>
+        </div>
+      `;
+      console.error(err);
+      return;
+    }
     setupNav();
 
     window.addEventListener('popstate', (e) => {
