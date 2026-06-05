@@ -419,44 +419,6 @@ Views.checkout = function(root) {
             </div>
           </div>
 
-          <div class="checkout-block">
-            <h3><span class="step-num">3</span> Payment</h3>
-            <p class="payment-note">🔒 Payment processing is simulated for this demonstration.</p>
-            <div class="payment-methods">
-              <label class="payment-option active" id="pay-card">
-                <input type="radio" name="payment" value="credit_card" checked>
-                <span>💳 Credit / Debit Card</span>
-              </label>
-              <label class="payment-option" id="pay-paypal">
-                <input type="radio" name="payment" value="paypal">
-                <span>🅿 PayPal</span>
-              </label>
-              <label class="payment-option" id="pay-afterpay">
-                <input type="radio" name="payment" value="afterpay">
-                <span>🔢 Afterpay</span>
-              </label>
-            </div>
-            <div id="card-fields">
-              <div class="form-group">
-                <label>Card Number</label>
-                <input type="text" id="card-num" class="input-field" placeholder="1234 5678 9012 3456" maxlength="19">
-                <span class="field-error" id="err-card-num"></span>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Expiry</label>
-                  <input type="text" id="card-exp" class="input-field" placeholder="MM/YY" maxlength="5">
-                  <span class="field-error" id="err-card-exp"></span>
-                </div>
-                <div class="form-group">
-                  <label>CVV</label>
-                  <input type="text" id="card-cvv" class="input-field" placeholder="123" maxlength="4">
-                  <span class="field-error" id="err-card-cvv"></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <button class="btn-primary btn-place-order" id="btn-place-order">Place Order</button>
         </div>
 
@@ -496,30 +458,12 @@ Views.checkout = function(root) {
     });
   });
 
-  // Payment toggle
-  root.querySelectorAll('[name="payment"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-      root.querySelectorAll('.payment-option').forEach(o => o.classList.remove('active'));
-      radio.closest('.payment-option').classList.add('active');
-      root.querySelector('#card-fields').style.display = radio.value === 'credit_card' ? '' : 'none';
-    });
-  });
-
-  // Card number formatting
-  const cardNum = root.querySelector('#card-num');
-  if (cardNum) {
-    cardNum.addEventListener('input', () => {
-      cardNum.value = cardNum.value.replace(/\D/g,'').replace(/(.{4})/g,'$1 ').trim();
-    });
-  }
-
   // Place order
   root.querySelector('#btn-place-order').addEventListener('click', async () => {
     const name = root.querySelector('#del-name').value.trim();
     const email = root.querySelector('#del-email').value.trim();
     const address = root.querySelector('#del-address').value.trim();
-    const paymentMethod = root.querySelector('[name="payment"]:checked').value;
-    const isCard = paymentMethod === 'credit_card';
+    const paymentMethod = 'simulated';
 
     let valid = true;
 
@@ -532,15 +476,6 @@ Views.checkout = function(root) {
     setError('err-del-name', !name ? 'Full name is required.' : '');
     setError('err-del-email', !email ? 'Email is required.' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? 'Invalid email address.' : '');
     setError('err-del-address', !address ? 'Delivery address is required.' : '');
-
-    if (isCard) {
-      const cn = (root.querySelector('#card-num').value || '').replace(/\s/g,'');
-      const exp = root.querySelector('#card-exp').value;
-      const cvv = root.querySelector('#card-cvv').value;
-      setError('err-card-num', cn.length !== 16 ? 'Enter a valid 16-digit card number.' : '');
-      setError('err-card-exp', !/^\d{2}\/\d{2}$/.test(exp) ? 'Enter expiry as MM/YY.' : '');
-      setError('err-card-cvv', cvv.length < 3 ? 'Enter a valid CVV.' : '');
-    }
 
     if (!valid) return;
 
